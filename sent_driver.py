@@ -9,6 +9,8 @@ import torch
 import transformers
 from datasets import load_dataset
 
+from sklearn.metrics import classification_report
+
 from tokenize_data import *
 from LIT_SENTIMENT import *
 
@@ -21,6 +23,7 @@ finetune_dataset = 'financial_phrasebank'
 train_data = load_dataset(finetune_dataset, 'sentences_75agree', split='train[:70%]')
 val_data = load_dataset(finetune_dataset, 'sentences_75agree', split='train[70%:85%]')
 test_data = load_dataset(finetune_dataset, 'sentences_75agree', split='train[85%:]')
+
 
 #need to find the average length of the sequences
 total_avg = sum( map(len, list(train_data['sentence'])) ) / len(train_data['sentence'])
@@ -49,6 +52,13 @@ model.load_state_dict(torch.load('best_model.pt'))
 preds, total_polarity = model_testing(model, test_dataset)
 
 final_preds = postprocess_predictions(preds)
+
+cr = classification_report(y_true=test_data['label'], y_pred = final_preds, output_dict = True)
+
+print()
+print(cr)
+
+
 
 
 
