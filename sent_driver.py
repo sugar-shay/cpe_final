@@ -10,6 +10,7 @@ import transformers
 from datasets import load_dataset
 
 from sklearn.metrics import classification_report
+import pickle
 
 from tokenize_data import *
 from LIT_SENTIMENT import *
@@ -41,6 +42,10 @@ model = LIT_SENTIMENT(model_checkpoint = model_checkpoint,
                  save_fp='best_model.pt')
 
 model = train_LitModel(model, train_dataset, val_dataset, max_epochs=15, batch_size=16, patience = 3, num_gpu=1)
+
+#saving the training stats
+with open('train_stats.pkl', 'wb') as f:
+    pickle.dump(model.training_stats, f)
 
 model = LIT_SENTIMENT(model_checkpoint = model_checkpoint,
                  hidden_dropout_prob=.1,
