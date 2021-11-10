@@ -158,7 +158,7 @@ def postprocess_predictions(raw_predictions):
     for pred in raw_predictions:
         
         #negative sentiment
-        if -1.0 >= pred and pred < -.3333:
+        if pred >= -1.0  and pred < -.3333:
             final_predictions.append(0)
             
         #neutral sentiment
