@@ -158,15 +158,15 @@ def postprocess_predictions(raw_predictions):
     for pred in raw_predictions:
         
         #negative sentiment
-        if -1.0 >= pred <-.3333:
+        if -1.0 >= pred and pred < -.3333:
             final_predictions.append(0)
             
         #neutral sentiment
-        elif -.3333 >= pred <= .3333:
+        elif pred >= -.3333 and pred <= .3333:
             final_predictions.append(1)
             
         #positive sentiment
-        elif .3333 <= pred <= 1.0:
+        elif pred > .3333 and pred <= 1.0:
             final_predictions.append(2)
     
     return final_predictions
