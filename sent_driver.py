@@ -57,7 +57,7 @@ final_preds = postprocess_predictions(preds)
 print('final preds shape: ', len(final_preds))
 print('test data shape: ', len(test_data['label']))
 
-cr = classification_report(y_true=test_data['label'], y_pred = final_preds, output_dict = True)
+cr = classification_report(y_true=test_data['label'], y_pred = final_preds, output_dict = False)
 
 print()
 print(cr)
