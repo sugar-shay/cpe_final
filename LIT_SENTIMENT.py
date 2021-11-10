@@ -144,7 +144,7 @@ def model_testing(model, test_dataset):
         mask = (batch['attention_mask']).to(device)
         polarity = batch['polarity']
         
-        logits = model(input_ids=seq, attention_mask=mask, labels=None)
+        logits = model(input_ids=seq, attention_mask=mask)
         
         preds.extend(logits.detach().cpu().numpy())
         total_polarity.extend(polarity)
