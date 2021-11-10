@@ -40,7 +40,7 @@ model = LIT_SENTIMENT(model_checkpoint = model_checkpoint,
                  attention_probs_dropout_prob=.1,
                  save_fp='best_model.pt')
 
-model = train_LitModel(model, train_dataset, val_dataset, max_epochs=1, batch_size=16, patience = 3, num_gpu=1)
+model = train_LitModel(model, train_dataset, val_dataset, max_epochs=15, batch_size=16, patience = 3, num_gpu=1)
 
 model = LIT_SENTIMENT(model_checkpoint = model_checkpoint,
                  hidden_dropout_prob=.1,
