@@ -168,6 +168,8 @@ def postprocess_predictions(raw_predictions):
         #positive sentiment
         elif pred > .3333 and pred <= 1.0:
             final_predictions.append(2)
+        else:
+            print(pred)
     
     return final_predictions
 
