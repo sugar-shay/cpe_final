@@ -17,7 +17,8 @@ from LIT_SENTIMENT import *
 
 def main():
     
-    model_checkpoint = 'ProsusAI/finbert'
+    #model_checkpoint = 'ProsusAI/finbert'
+    model_checkpoint = 'bert-base-uncased'
     finetune_dataset = 'financial_phrasebank'
     
     #label 2 correspnds to positive sentiment 
