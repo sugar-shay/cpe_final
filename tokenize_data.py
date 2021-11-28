@@ -14,12 +14,13 @@ from transformers import AutoTokenizer
 
 class Sentiment_Tokenizer():
     
-    def __init__(self, max_length, tokenizer_name = None): #unique_labels
+    def __init__(self, max_length, tokenizer_name = None, continious_output=False): #unique_labels
         #self.unique_tags = unique_labels
         #self.tag2id = {tag: id for id, tag in enumerate(self.unique_tags)}
         #self.id2tag = {id: tag for tag, id in self.tag2id.items()}
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True) if tokenizer_name is not None else AutoTokenizer.from_pretrained('bert-base-cased', use_fast=True)
         self.max_len = max_length
+        self.continious_output = continious_output
     
     
     def tokenize_and_encode_labels(self, dataset):
@@ -29,9 +30,11 @@ class Sentiment_Tokenizer():
         
         encodings = self.tokenizer(sentences, is_split_into_words=False, return_offsets_mapping=False, max_length = self.max_len, padding=True, truncation=True)
         
-        polarity = self.encode_tags(labels)
-        
-        dataset = Sentiment_Dataset(encodings, polarity)
+        if self.continious_output == True:
+            polarity = self.encode_tags(labels)
+            dataset = Sentiment_Dataset(encodings, polarity, continious_output=self.continious_output)
+        else:
+            dataset = Sentiment_Dataset(encodings, labels, continious_output=self.continious_output)
         
         return dataset
             
@@ -57,14 +60,17 @@ class Sentiment_Tokenizer():
 
   
 class Sentiment_Dataset(torch.utils.data.Dataset):
-    def __init__(self, encodings, polarity):
+    def __init__(self, encodings, ground_truth, continious_output=False):
         self.encodings = encodings
-        self.polarity = polarity
+        self.ground_truth = ground_truth
+        self.continious_output = continious_output
     
     def __getitem__(self, idx):
         item = {key: torch.LongTensor(val[idx]) for key, val in self.encodings.items()}
-        if self.polarity is not None:
-            item['polarity'] = torch.as_tensor(self.polarity[idx])
+        if self.continious_output == True and self.ground_truth is not None:
+            item['polarity'] = torch.as_tensor(self.ground_truth[idx])
+        elif self.continious_output == False and self.ground_truth is not None:
+            item['label'] = torch.as_tensor(self.ground_truth[idx])
         return item
     
     def __len__(self):

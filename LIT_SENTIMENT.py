@@ -11,7 +11,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from transformers import AutoModel, AutoConfig
+from transformers import AutoModel, AutoModelForSequenceClassification, AutoConfig
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from pytorch_lightning.loggers import WandbLogger
@@ -22,29 +22,40 @@ import os
 class LIT_SENTIMENT(pl.LightningModule):
     def __init__(self,  
                  model_checkpoint,
+                 continious_output = False,
                  hidden_dropout_prob=.5,
                  attention_probs_dropout_prob=.2,
                  save_fp='best_model.pt'):
        
         super(LIT_SENTIMENT, self).__init__()
         
-        
+        self.continious_output = continious_output
         self.build_model(hidden_dropout_prob, attention_probs_dropout_prob, model_checkpoint)
         
         self.training_stats = {'train_losses':[],
                                'val_losses':[]}
         
         self.save_fp = save_fp
-        self.fc1 = nn.Linear(768, 1)
-        self.criterion = nn.MSELoss()
+        if self.continious_output == False:
+            self.fc1 = nn.Linear(768, 3)
+            self.criterion = nn.CrossEntropyLoss()
+            self.softmax = nn.Softmax(dim=-1)
+        else:
+            self.fc1 = nn.Linear(768, 1)
+            self.criterion = nn.MSELoss()
     
     def build_model(self, hidden_dropout_prob, attention_probs_dropout_prob, model_checkpoint):
-        config = AutoConfig.from_pretrained(model_checkpoint)
-        #These are the only two dropouts that we can set
-        config.hidden_dropout_prob = hidden_dropout_prob
-        config.attention_probs_dropout_prob = attention_probs_dropout_prob
-        self.encoder = AutoModel.from_pretrained(model_checkpoint, config=config)
-        
+        if self.continious_output == True:
+            config = AutoConfig.from_pretrained(model_checkpoint)
+            config.hidden_dropout_prob = hidden_dropout_prob
+            config.attention_probs_dropout_prob = attention_probs_dropout_prob
+            self.encoder = AutoModel.from_pretrained(model_checkpoint, config=config)
+        else:
+            config = AutoConfig.from_pretrained(model_checkpoint)
+            config.hidden_dropout_prob = hidden_dropout_prob
+            config.attention_probs_dropout_prob = attention_probs_dropout_prob
+            config.num_labels = 3
+            self.encoder = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, config=config)
     def save_model(self):
         
         '''
@@ -55,17 +66,20 @@ class LIT_SENTIMENT(pl.LightningModule):
         torch.save(self.state_dict(), self.save_fp)
         
     def forward(self, input_ids, attention_mask):
-        pooler_output = self.encoder(input_ids= input_ids, attention_mask= attention_mask)
-        
-        (cls_hs, last_hidden_state) = pooler_output.to_tuple()
- 
-        x = self.fc1(last_hidden_state)
-        
-        logits =  torch.tanh(x)
+
+        if self.continious_output == True:
+            pooler_output = self.encoder(input_ids= input_ids, attention_mask= attention_mask)
+            (cls_hs, last_hidden_state) = pooler_output.to_tuple()
+            x = self.fc1(last_hidden_state)
+            logits =  torch.tanh(x)
+            
+        else:
+            output = self.encoder(input_ids= input_ids, attention_mask= attention_mask)
+            logits = self.softmax(output.logits)
         return logits
 
     def configure_optimizers(self):
-        optimizer = AdamW(self.parameters(), lr=3e-5)
+        optimizer = AdamW(self.parameters(), lr=4e-5)
         return optimizer
 
     def training_step(self, batch, batch_idx):
@@ -73,8 +87,11 @@ class LIT_SENTIMENT(pl.LightningModule):
         # Run Forward Pass
         logits = self.forward(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
 
-        # Compute Loss (Cross-Entropy)
-        loss = self.criterion(batch['polarity'], logits)
+        # Compute Loss
+        if self.continious_output == True:
+            loss = self.criterion(logits, batch['polarity'])
+        else:
+            loss = self.criterion(logits, batch['label'])
         
         
         # Set up Data to be Logged
@@ -92,8 +109,11 @@ class LIT_SENTIMENT(pl.LightningModule):
         # Run Forward Pass
         logits = self.forward(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
 
-        # Compute Loss (Cross-Entropy)
-        loss = self.criterion(batch['polarity'], logits)
+        # Compute Loss
+        if self.continious_output == True:
+            loss = self.criterion(logits, batch['polarity'])
+        else:
+            loss = self.criterion(logits, batch['label'])
         
        
         return {"val_loss": loss}
@@ -135,22 +155,31 @@ def model_testing(model, test_dataset):
     
     test_dataloader = DataLoader(test_dataset, batch_size=32)
     
-    preds, total_polarity = [], []
+    preds, ground_truths = [], []
     
     model.eval()
     for idx, batch in enumerate(test_dataloader):
         
         seq = (batch['input_ids']).to(device)
         mask = (batch['attention_mask']).to(device)
-        polarity = batch['polarity']
         
-        logits = model(input_ids=seq, attention_mask=mask)
+        if model.continious_output == True:
+            
+            polarity = batch['polarity']
+            ground_truths.extend(polarity)
+            logits = model(input_ids=seq, attention_mask=mask)
+            preds.extend(logits.detach().cpu().numpy())
         
-        preds.extend(logits.detach().cpu().numpy())
-        total_polarity.extend(polarity)
+        else:
+            label = batch['label']
+            ground_truths.extend(label)
+            
+            logits = model(input_ids=seq, attention_mask=mask)
+            logits = logits.detach().cpu().numpy()
+            preds.extend(np.argmax(logits, axis = -1))
         
     
-    return preds, total_polarity
+    return preds, ground_truths
 
 def postprocess_predictions(raw_predictions):
     
