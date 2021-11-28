@@ -61,12 +61,14 @@ def main():
     
     preds, ground_truths = model_testing(model, test_dataset)
     
+    
+    '''
     print('raw preds shape: ', len(preds))
     
     #final_preds = postprocess_predictions(preds)
     print('final preds shape: ', len(final_preds))
     print('test data shape: ', len(test_data['label']))
-    
+    '''
     cr = classification_report(y_true=test_data['label'], y_pred = preds, output_dict = False)
     
     print()
