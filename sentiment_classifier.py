@@ -33,6 +33,7 @@ class SENTIMENT_CLASSIFIER(pl.LightningModule):
         
         self.save_fp = save_fp
         self.criterion = nn.CrossEntropyLoss()
+        self.softmax = nn.Softmax(dim=-1)
     
     def build_model(self, model_checkpoint):
        
@@ -55,10 +56,10 @@ class SENTIMENT_CLASSIFIER(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         
         # Run Forward Pass
-        output = self.forward(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'], labels = batch['label'], return_dict = True)
-        loss = output.loss
+        logits = self.encoder(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
+        #loss = output.loss
         # Compute Loss
-        #loss = self.criterion(logits, batch['label'])
+        loss = self.criterion(logits, batch['label'])
         
         
         # Set up Data to be Logged
