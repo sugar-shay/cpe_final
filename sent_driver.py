@@ -14,7 +14,7 @@ import pickle
 
 from tokenize_data import *
 from LIT_SENTIMENT import *
-
+from sentiment_classifier import *
 def main():
     
     #model_checkpoint = 'ProsusAI/finbert'
@@ -39,6 +39,7 @@ def main():
     val_dataset = tokenizer.tokenize_and_encode_labels(val_data)
     test_dataset = tokenizer.tokenize_and_encode_labels(test_data)
     
+    '''
     model = LIT_SENTIMENT(model_checkpoint = model_checkpoint,
                      hidden_dropout_prob=.1,
                      attention_probs_dropout_prob=.1,
@@ -46,7 +47,11 @@ def main():
                      continious_output=False)
     
     model = train_LitModel(model, train_dataset, val_dataset, max_epochs=15, batch_size=16, patience = 3, num_gpu=1)
+    '''
     
+    model = SENTIMENT_CLASSIFIER(model_checkpoint)
+    
+    model = train_sentiment_classifier(model, train_dataset, val_dataset, max_epochs=15, batch_size=16, patience = 3, num_gpu=1)
     
     #saving the training stats
     with open('train_stats.pkl', 'wb') as f:
