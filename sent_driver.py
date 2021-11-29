@@ -70,7 +70,7 @@ def main():
     print('final preds shape: ', len(final_preds))
     print('test data shape: ', len(test_data['label']))
     '''
-    cr = classification_report(y_true=ground_truth, y_pred = preds, output_dict = False)
+    cr = classification_report(y_true=ground_truths, y_pred = preds, output_dict = False)
     
     print()
     print(cr)
